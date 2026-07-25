@@ -3,7 +3,7 @@
 
 def main():
 
-    print("GO")
+    print("GO2s")
     pass
 
 
