@@ -1,0 +1,46 @@
+Dane pomiarowe prezentowane w poniższych katalogach, należy traktować jako dane operacyjne.
+
+Dane pomiarowe w plikach pochodzą z automatycznych stacji pomiarowych, stan bieżący stacji pomiarowej jak i położenie, można śledzić na stronie https://hydro.imgw.pl.
+Serwis hydro.imgw.pl, posiada własny regulamin udostępniania danych znajdujący się pod adresem https://hydro.imgw.pl/#/regulamin.
+Dane pomiarowe napływają do bazy danych zwanej System Hydrologii (w skrócie SH), podstawowej aplikacji operacyjnej Biur Prognoz Hydrologicznych. Gdzie następuje wstępna, operacyjna weryfikacja danych.
+Występujace wartości 999 oznaczają brak danych lub są to błędne dane(awaria urządzenia pomiarowego).
+
+Plik zostały wygenerowane przez System Hydrologii, w standardowym pliku eksportu.
+Jest to plik tekstowy w formacie kolumnowym, rozdzielony średnikiem. Struktura pliku to:
+
+ Kolumna 1 - KodSH – 9-cyfrowy kod stacji pomiarowej, stosowany w IMGW PIB do identyfikacji stacji pomiarowej,
+ Kolumna 2 - ParametrSH – parametr pomiarowy, stosowany w Systemie Hydrologii,
+ Kolumna 3 - Data – czas w którym została zaobserwowana wartość pomiarowa,
+ Kolumna 4 - Wartość – wartość pomiarowa.
+
+Każda stacja pomiarowa reprezentowana jest poprzez kod, nazwę, oraz rzekę. Kod SH identyfikuje typ stacji pomiarowej:
+ 1XXXXXXXX - stacja wodowskazowa, 
+ 2XXXXXXXX - stacja meteorologiczna, niższego rzędu, o mniejszej liczbie parametrów pomiarowych,
+ 3XXXXXXXX – stacja meteorologiczna I rzędu (tzw. synoptyczna), o pełny zakresie pomiarowym.
+Lista stacji znajduje się w pliku kody_stacji.csv.
+
+Parametr SH, stosowany w Systemie Hydrologii, identyfikuje jakie to są dane pomiarowe.
+Początkowa literka oznacza typ danych (dane rzeczywiste, prognoza), np. B – dana rzeczywista.
+Trzy pierwsze cyfry, oznaczają grupę pomiarową np. 000 – pomiar stanów wody, 003 – pomiar temperatury powietrza. Dwie kolejne, określają dokładnie jaki parametr np. 01 – dana pomiarowa od obserwatora, 02 – dana pomiarowa z czujnika.
+Ostatnia litera oznacza czy wartość pomiarowa jest bezpośrednio zaobserwowana, czy przetworzona w SH:
+ A - Bezpośrednio zaobserwowana dana pomiarowa,
+ B - Wartość pomiarowa  przeliczona np. przepływ wody,
+ S – Oficjalna wartość operacyjna.
+Lista parametrów znajduje się w pliku kody_parametrów.csv.
+
+Czas pomiaru podawany jest w czasie uniwersalnym (GMT), bez uwzględnienia czasu lokalnego oraz zmian czas letni/czas zimowy. 
+W IMGW PIB, stosowana jest 10 minutowa rozdzielczość czasowa danych pomiarowych pochodzącychz Systemu Telemetrii (ST).
+
+Wartość pomiarowa podawana jest z dokładnością zdefiniowaną dla poszczególnych parametrów, wynikająca z dokładności urządzeń pomiarowych.
+Braki danych mogą wynikać z wstępnej weryfikacji danych, lub awarii urządzenia pomiarowego. Jak również użależnione jest od daty uruchomienia stacji.
+Zakres danych pomiarowych prezentowany jest od roku 2008. Zgodnie z zarządzeniem dyrektora IMGW PIB w tym roku, dane pomiarowe z sieci stacji telemetrycznych, zostały dopuszczone do użytkowania.
+
+W pierwszej kolejności pliki podzielono zewzgledu na rodzaj danych, osobne katalogi:
+ Hydro - hydrologiczne,
+ Meteo - meteorologiczne.
+W nich znajdują się katalogii odpowiadające roku pomiaru oraz pliki z kodami stacji i parametrów.
+Dane pomiarowe są porcjonowane miesięcznie, każdy parametr jako osobny plik. Pliki z danego miesiąca są spakowane w standarcie zip.
+
+Pliki z danymi 10 minutowymi, posiadają dużą liczbę rekordów (powyżej 2 miliona), dlatego nie rekomendujemy dla takich plików przeglądanie ich w popularnym programach kalkulacyjnych np. Excel, ponieważ posiadają ograniczenia wyświetlania rekordów (1 milion).
+
+Związku z zmianą mechanizmu generowania plików, z dniem 1 czerwca 2024, nastąpiły zmiany w formacie pliku. Związku zmianą standartu zaprzestano wstawiania średnika na koncu linii, oraz zastosowano kropkę jako separatora dziesiętnego.

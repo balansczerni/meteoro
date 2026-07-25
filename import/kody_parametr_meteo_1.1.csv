@@ -1,0 +1,13 @@
+Kod;Nazwa;Jednostka
+B00300S;Temperatura powietrza (oficjalna);stopieñ Celsjusza
+B00305A;Temperatura gruntu (czujnik);stopieñ Celsjusza
+B00202A;Kierunek wiatru (czujnik);stopieñ k¹ta
+B00702A;Œrednia prêdkoœæ wiatru czujnik 10 minut;metr na sekundê
+B00703A;Prêdkoœæ maksymalna (czujnik);metr na sekundê
+B00608S;Suma opadu 10 minutowego;milimetr
+B00604S;Suma opadu dobowego;milimetr
+B00606S;Suma opadu godzinowego;milimetr
+B00802A;Wilgotnoœæ wzglêdna powietrza (czujnik);procent
+B00714A;Najwiêkszy poryw w okresie 10min ze stacji Synoptycznej;metr na sekundê
+B00910A;Zapas wody w œniegu (obserwator);milimetr
+B00916A;Ciœnienie atmosferyczne bezwzglêdne (czujnik);hektoPascal
