@@ -44,7 +44,7 @@ def main():
 
 def lublinek_menager(lublinek_stacja_code, pomiar_code, pomiar_name, export_path):
     # For file in data, find file starting with code.
-    lines_to_write = []
+    data_to_process = []
     filename = pomiar_name + ".csv"
     out_path = os.path.join(export_path, filename)
 
@@ -62,8 +62,11 @@ def lublinek_menager(lublinek_stacja_code, pomiar_code, pomiar_name, export_path
                     opady = row[3]
                     day_data = [dzien[0:10],  opady]
                     print(day_data)
-                    lines_to_write.append(day_data)
+                    data_to_process.append(day_data)
 
+    lines_to_write = []
+    for day in data_to_process:
+        lines_to_write.append(f"{day[0]},{day[1]}\n")
 
     with open(out_path, "w") as export_file:
         export_file.writelines(lines_to_write)
