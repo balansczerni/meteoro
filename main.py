@@ -58,11 +58,9 @@ def lublinek_menager(lublinek_stacja_code, pomiar_code, pomiar_name, export_path
                 # print(lublinek_stacja_code)
                 # print(row[0])
                 if row[0] == lublinek_stacja_code:
-                    print("LUBLINEK")
                     dzien = row[2]
                     opady = row[3]
-                    print(dzien + " " + opady)
-                    day_data = dzien[0:10] + opady
+                    day_data = [dzien[0:10],  opady]
                     print(day_data)
                     lines_to_write.append(day_data)
 
