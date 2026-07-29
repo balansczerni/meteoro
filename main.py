@@ -1,3 +1,5 @@
+import csv
+
 # B00300S;Temperatura powietrza (oficjalna);stopień Celsjusza
 # B00604S;Suma opadu dobowego;milimetr
 # B00606S;Suma opadu godzinowego;milimetr
@@ -9,10 +11,19 @@
 # 5.zebrać to w jednym pliku
 #
 def main():
+    przerobnadobowe()
     pass
 
 def przerobnadobowe():
-    files = ["BALUTY", "KWSP"]
+    files = ["data/BALUTY.csv"]
+    with open("data/BALUTY.csv") as file:
+        x = csv.reader(file, delimiter=',', quotechar=' ')
+        for row in x:
+                print(', '.join(row))
+                # for y in row:
+                #     print(y)
+                print(row[12])
+
 
 if __name__ == "__main__":
     main()
