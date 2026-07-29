@@ -70,7 +70,7 @@ def realDownloading(link):
     # Ustalamy nazwę pliku (w tym wypadku wiemy, że chcemy ostatnie 17 znaków).
     file_Name = link[-17:]
     # Ustalamy ścieżkę pod którą chcemy zapisać plik.
-    file_Path = "export/" + file_Name
+    file_Path = "import/" + file_Name
     # Pobieramy plik. Korzystamy tutaj z zewnętrznej biblioteki Requests.
     # Zmienna response zawiera w sobie nie tylko pobrany plik (.content),
     # ale też inne informacje. Np. odpowiedź serwera (.status_code)
