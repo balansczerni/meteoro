@@ -11,6 +11,10 @@ import zipfile
 # - https://docs.python.org/3/library/os.html
 import os
 
+# "The sys module provides access to some variables used or maintained by the interpreter."
+# - https://docs.python.org/3/library/sys.html
+import sys
+
 ################################################################################
 # Defniniujemy funkcje, których chcemy używać w naszym oprogramowaniu.         #
 # Python czyta plik od góry do dołu.                                           #
@@ -26,6 +30,9 @@ def main():
     # Iterujemy przez listę plików i każdy wypakowujemy.
     for plik in pliki:
         wypakuj(plik)
+
+    print("Wypakowano: " + str(len(pliki)) + " plików.")
+    return sys.exit()
 
 # Funkcja, która tworzy katalog data jeśli jeszcze nie istnieje.
 def stworzKatalogData():
