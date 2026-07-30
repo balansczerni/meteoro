@@ -11,6 +11,11 @@ import requests
 # - https://docs.python.org/3/library/os.html
 import os
 
+# "The sys module provides access to some variables used or maintained by the interpreter."
+# - https://docs.python.org/3/library/sys.html
+# Nam służy do tego by upewnić się, że proces zakończył się pomyślnie.
+import sys
+
 ################################################################################
 # Defniniujemy funkcje, których chcemy używać w naszym oprogramowaniu.         #
 # Python czyta plik od góry do dołu.                                           #
@@ -20,10 +25,12 @@ import os
 
 def main():
     x = listAllLinks()
+    pobrane_pliki = []
     for link in x:
-        downloading(link)
-    print(x)
-    pass
+        path = downloading(link)
+        pobrane_pliki.append(path)
+    print("Pobrano: " + str(len(pobrane_pliki)) + " plików.")
+    return sys.exit()
 
 # Funkcja, która iteruje przez podane przez lata (od 2008 do 2027) i miesiące
 # (od 1 do 13), by utworzyć listę linków do pobrania.
@@ -64,6 +71,13 @@ def downloading(link):
         link = link[0:-3] + "ZIP"
         # Ponawiamy pobieranie, tym razem właściwego pliku.
         realDownloading(link)
+    size = os.path.getsize(file_Path)
+    if size < 300:
+        print("TEN PLIK JEST ZA MAŁY BY BYĆ DANYMI: " + str(size) + " bytes")
+        print("USUWAM: " + file_Path)
+        os.remove(file_Path)
+
+    return file_Path
 
 # Funkcja pobierająca i zapisująca plik z linku, który jej dajemy.
 def realDownloading(link):
