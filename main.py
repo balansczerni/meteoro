@@ -16,7 +16,26 @@ import sys
 # 3. chcemy zebrac pliki z parametru opad dobowy razem
 # 4. wyciągnąć dane dla stacji Lublinek - kod stacji 351190465
 # 5.zebrać to w jednym pliku
-
+#
+#
+# 0. retrospektywnie zabezpiecy sie przed waroacia 999 (Lublinkowe dane)
+# 1. wyciągnij temperature z PAtrIo,
+# 2. wyciagnij temperatury z KwSP, BALUTY
+# 3. wyciagnj temperwature zze stacji lublinek
+# (pytanie - czy pomiat temparatury LUBLINKA to srednia dobowa czy pomiar o godzinie 6:00 /// w zależnosci od tego bedzie nas interesowaly inne dane z 3 powyzszychstacji)
+# 4. przygotowac sie na patio godzinowe
+#
+# #### Tabela (4 tabele) prównujące każdy parametr dla każdej
+# kolumny stacje + średnia (z 3 stacji - Bałuty, Kwsp, lublinek) + różnica między patio a średnią
+# wiersze datas
+# komorki wartosci
+#
+# (czy ktoraz z 3 wiarygodnych stacji ma wieksze odchylenia niz uystawa przewiduje)
+#
+# WYKRESY >
+# 1. liniowy całoścowy (powinien pokazywac takie same kreski mniej wiecej) (debug)
+# 2. Pytanie jak wizualizować odchylenia
+#
 
 def main():
     # Pliki i ścieżki
@@ -45,7 +64,7 @@ def main():
 def lublinek_menager(lublinek_stacja_code, pomiar_code, pomiar_name, export_path):
     # For file in data, find file starting with code.
     data_to_process = []
-    filename = pomiar_name + ".csv"
+    filename = pomiar_name + "_LUBLINEK.csv"
     out_path = os.path.join(export_path, filename)
 
     for file in os.listdir("data"):
