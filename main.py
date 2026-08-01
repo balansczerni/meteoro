@@ -32,7 +32,7 @@ def main():
         wybor = input("\nWybierz opcję: ").strip()
 
         if wybor == "0":
-            print("Do widzenia!")
+            print("Pozdro.")
             break
 
         if wybor not in OPCJE:
