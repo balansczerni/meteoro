@@ -3,17 +3,17 @@
 # których domyślny Python w sobie nie ma.                                      #
 ################################################################################
 
-# "This module provides tools to work with ZIP archives."
-# - https://docs.python.org/3/library/zipfile.html
-import zipfile
-
 # "This provides a way of using operating system dependent functionality."
 # - https://docs.python.org/3/library/os.html
 import os
 
-# "The sys module provides access to some variables used or maintained by the interpreter."
-# - https://docs.python.org/3/library/sys.html
-import sys
+# "This module provides tools to work with ZIP archives."
+# - https://docs.python.org/3/library/zipfile.html
+import zipfile
+
+# Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
+# działają niezależnie od tego, z którego katalogu uruchomimy program.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ################################################################################
 # Defniniujemy funkcje, których chcemy używać w naszym oprogramowaniu.         #
@@ -31,15 +31,16 @@ def main():
     for plik in pliki:
         wypakuj(plik)
 
-    print("Wypakowano: " + str(len(pliki)) + " plików.")
-    return sys.exit()
+    # Zamiast kończyć program (sys.exit) zwracamy komunikat do main.py.
+    return "Wypakowano: " + str(len(pliki)) + " plików."
 
 # Funkcja, która tworzy katalog data jeśli jeszcze nie istnieje.
 def stworzKatalogData():
     # Sprawdzamy, czy katalog data już istnieje.
-    if not os.path.exists("data"):
+    katalog_data = os.path.join(PROJECT_ROOT, "data")
+    if not os.path.exists(katalog_data):
         # Jeśli nie istnieje, to go tworzymy.
-        os.makedirs("data")
+        os.makedirs(katalog_data)
         print('Utworzono katalog "data"')
 
 # Funkcja, która przeszukuje katalog import i zwraca listę ścieżek do plików
@@ -47,13 +48,15 @@ def stworzKatalogData():
 def znajdzPlikiZip():
     # Pusta lista, do której będziemy zapisywać znalezione pliki.
     listaPlikow = []
+    # Katalog, w którym szukamy plików zip.
+    katalog_import = os.path.join(PROJECT_ROOT, "import")
     # Lista wszystkich plików i folderów w katalogu import.
-    zawartosc = os.listdir("import")
+    zawartosc = os.listdir(katalog_import)
     for element in zawartosc:
         # Sprawdzamy, czy element kończy się na .zip lub .ZIP.
-        if element.endswith(".zip") or element.endswith(".ZIP"):
+        if element.endswith((".zip", ".ZIP")):
             # Tworzymy pełną ścieżkę: "import/nazwa_pliku.zip"
-            pelnaSciezka = "import/" + element
+            pelnaSciezka = os.path.join(katalog_import, element)
             # Dodajemy do listy.
             listaPlikow.append(pelnaSciezka)
             print("ZNALAZŁEM: " + pelnaSciezka)
@@ -66,7 +69,7 @@ def wypakuj(sciezkaPliku):
     # R oznacza "read" (czytanie) - chcemy tylko czytać zawartość archiwum.
     with zipfile.ZipFile(sciezkaPliku, 'r') as archiwum:
         # Wypakowujemy całą zawartość do katalogu data.
-        archiwum.extractall("data")
+        archiwum.extractall(os.path.join(PROJECT_ROOT, "data"))
     print("Gotowe!")
 
 ################################################################################
@@ -76,4 +79,4 @@ def wypakuj(sciezkaPliku):
 ################################################################################
 
 if __name__ == "__main__":
-    main()
+    print(main())

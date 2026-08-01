@@ -3,18 +3,17 @@
 # których domyślny Python w sobie nie ma.                                      #
 ################################################################################
 
-# "Requests is a simple, yet elegant, HTTP library."
-# - https://pypi.org/project/requests/
-import requests
-
 # "This provides a way of using operating system dependent functionality."
 # - https://docs.python.org/3/library/os.html
 import os
 
-# "The sys module provides access to some variables used or maintained by the interpreter."
-# - https://docs.python.org/3/library/sys.html
-# Nam służy do tego by upewnić się, że proces zakończył się pomyślnie.
-import sys
+# "Requests is a simple, yet elegant, HTTP library."
+# - https://pypi.org/project/requests/
+import requests
+
+# Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
+# działają niezależnie od tego, z którego katalogu uruchomimy program.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ################################################################################
 # Defniniujemy funkcje, których chcemy używać w naszym oprogramowaniu.         #
@@ -29,8 +28,8 @@ def main():
     for link in x:
         path = downloading(link)
         pobrane_pliki.append(path)
-    print("Pobrano: " + str(len(pobrane_pliki)) + " plików.")
-    return sys.exit()
+    # Zamiast kończyć program (sys.exit) zwracamy komunikat do main.py.
+    return "Pobrano: " + str(len(pobrane_pliki)) + " plików."
 
 # Funkcja, która iteruje przez podane przez lata (od 2008 do 2027) i miesiące
 # (od 1 do 13), by utworzyć listę linków do pobrania.
@@ -84,7 +83,7 @@ def realDownloading(link):
     # Ustalamy nazwę pliku (w tym wypadku wiemy, że chcemy ostatnie 17 znaków).
     file_Name = link[-17:]
     # Ustalamy ścieżkę pod którą chcemy zapisać plik.
-    file_Path = "import/" + file_Name
+    file_Path = os.path.join(PROJECT_ROOT, "import", file_Name)
     # Pobieramy plik. Korzystamy tutaj z zewnętrznej biblioteki Requests.
     # Zmienna response zawiera w sobie nie tylko pobrany plik (.content),
     # ale też inne informacje. Np. odpowiedź serwera (.status_code)
@@ -121,4 +120,4 @@ def linkcreator(rok, miesiac):
 ################################################################################
 
 if __name__ == "__main__":
-    main()
+    print(main())

@@ -16,8 +16,12 @@
 
 import os
 
-data_path = "data/"
-output_path = "data/unified/"
+# Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
+# działają niezależnie od tego, z którego katalogu uruchomimy program.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+data_path = os.path.join(PROJECT_ROOT, "data")
+output_path = os.path.join(PROJECT_ROOT, "data", "unified")
 
 def main():
 
@@ -28,7 +32,7 @@ def main():
         if not os.path.isfile(file_path):
             continue
         print(f"Processing {file_path}")
-        with open(file_path, 'r') as f, open(output_path + file, 'w') as out:
+        with open(file_path, 'r') as f, open(os.path.join(output_path, file), 'w') as out:
             for line in f:
                 if not line.strip():
                     continue
@@ -48,6 +52,9 @@ def main():
                 # Write line to output file
                 out.write(line + '\n')
         print("Done.")
+
+    # Zamiast kończyć cicho, zwracamy komunikat do main.py.
+    return "Unifikacja zakończona. Znormalizowane pliki są w katalogu data/unified."
 
 
 
@@ -99,4 +106,4 @@ def flip_ddmmyyyy(data_part):
 
 
 if __name__ == "__main__":
-    main()
+    print(main())

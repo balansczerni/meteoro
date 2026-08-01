@@ -1,7 +1,10 @@
 import csv
 import os
-import sys
 from concurrent.futures import ProcessPoolExecutor
+
+# Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
+# działają niezależnie od tego, z którego katalogu uruchomimy program.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Z data-raw/LUBLINEK/
 # B00300S;Temperatura powietrza (oficjalna);stopień Celsjusza
@@ -16,11 +19,11 @@ from concurrent.futures import ProcessPoolExecutor
 # Temperatura to kolumna 6
 # Opady to kolumna 12
 
-# Pliki i ścieżki
-baluty_file = "data-raw/BALUTY.csv"
-kwsp_file = "data-raw/KWSP.csv"
-patio_file = "data-raw/PATIO.csv"
-lublinek_path = "data-raw/LUBLINEK/"
+# Pliki i ścieżki (względem katalogu głównego projektu)
+baluty_file = os.path.join(PROJECT_ROOT, "data-raw", "BALUTY.csv")
+kwsp_file = os.path.join(PROJECT_ROOT, "data-raw", "KWSP.csv")
+patio_file = os.path.join(PROJECT_ROOT, "data-raw", "PATIO.csv")
+lublinek_path = os.path.join(PROJECT_ROOT, "data-raw", "LUBLINEK")
 
 # Kolumny (-1 bo indeksowanie od 0)
 kolumna_daty_KBP = 0
@@ -32,7 +35,7 @@ kolumna_daty_lublinek = 2
 kolumna_zmiennej_lublinek = 3
 
 # Exportuj dane do folderu data (bez "raw")
-export_path = "data"
+export_path = os.path.join(PROJECT_ROOT, "data")
 
 # Lublinek codes:
 lublinek_stacja_code = "351190465"
@@ -78,7 +81,8 @@ def main():
     print("Sorting CSV files...")
     sort_csv_lines(export_path)
 
-    sys.exit("END")
+    # Zamiast kończyć program (sys.exit) zwracamy komunikat do main.py.
+    return "Ekstrakcja zakończona. Wyniki zapisano w katalogu data."
 
 # Funkcja wyciągająca dane z kolumny X oraz Y
 def extract_data_from_columns(kolumna_daty, kolumna_zmiennej, file):
@@ -157,4 +161,4 @@ def sort_csv_lines(files_dir):
         create_csv_from_list(data, file)
 
 if __name__ == "__main__":
-    main()
+    print(main())
