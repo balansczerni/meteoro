@@ -53,6 +53,9 @@ def main():
                 out.write(line + '\n')
         print("Done.")
 
+    sort_csv_lines(output_path)
+
+
     # Zamiast kończyć cicho, zwracamy komunikat do main.py.
     return "Unifikacja zakończona. Znormalizowane pliki są w katalogu data/unified."
 
@@ -103,6 +106,16 @@ def flip_ddmmyyyy(data_part):
         #print(f"Flipping {data_part} to {data_part[6:10]}-{data_part[3:5]}-{data_part[0:2]}")
         return f"{data_part[6:10]}-{data_part[3:5]}-{data_part[0:2]}"
     return data_part
+
+# Posortuj linie w pliku CSV od najmniej do największej
+def sort_csv_lines(files_dir):
+    for file_name in os.listdir(files_dir):
+        file_path = os.path.join(files_dir, file_name)
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+        lines.sort()
+        with open(file_path, 'w') as f:
+            f.writelines(lines)
 
 
 if __name__ == "__main__":
