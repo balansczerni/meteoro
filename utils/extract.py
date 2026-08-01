@@ -73,7 +73,7 @@ def main():
     lines_to_write = extract_data_from_lublinek(lublinek_code_opady_dobowe)
     create_csv_from_list(lines_to_write, "opady_LUBLINEK.csv")
     lines_to_write = extract_data_from_lublinek(lublinek_code_temperatura)
-    create_csv_from_list(lines_to_write, "temperatura_LUBLINEK.csv")
+    create_csv_from_list(lines_to_write, "temperatury_LUBLINEK.csv")
 
     print("Finished extracting data from LUBLINEK.")
 
