@@ -1,6 +1,7 @@
 import os
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
 # działają niezależnie od tego, z którego katalogu uruchomimy program.
@@ -10,6 +11,7 @@ output_path = os.path.join(PROJECT_ROOT, "export")
 
 # Stacje używane do obliczania średniej referencyjnej.
 STACJE_REF = ["BALUTY", "KWSP", "LUBLINEK"]
+STACJE_BL  = ["BALUTY", "LUBLINEK"]  # bez KWSP
 
 
 def main():
@@ -23,9 +25,23 @@ def main():
         save_chart_patio_vs_avg(rows, prefix, unit)
         print(f"Zapisano: {prefix}_patio_vs_srednia.html")
 
+        save_chart_diff(rows, prefix, unit, "Średnia (B+K+L)", "Średnia (B+K+L)")
+        print(f"Zapisano: {prefix}_diff_patio_vs_srednia.html")
+
+        if prefix == "opady":
+            save_line_chart(rows, prefix, unit, "Średnia (B+L)", "Średnia (B+L)",
+                            "opady_patio_vs_srednia_bez_kwsp.html")
+            print("Zapisano: opady_patio_vs_srednia_bez_kwsp.html")
+            save_chart_diff(rows, prefix, unit, "Średnia (B+L)", "Średnia (B+L)",
+                            out_name="opady_diff_patio_vs_srednia_bez_kwsp.html")
+            print("Zapisano: opady_diff_patio_vs_srednia_bez_kwsp.html")
+
         for stacja in STACJE_REF:
             save_chart_patio_vs_station(rows, prefix, unit, stacja)
             print(f"Zapisano: {prefix}_patio_vs_{stacja.lower()}.html")
+
+            save_chart_diff(rows, prefix, unit, stacja, stacja)
+            print(f"Zapisano: {prefix}_diff_patio_vs_{stacja.lower()}.html")
 
     return "Zapisano tabele i wykresy w katalogu export/."
 
@@ -87,15 +103,28 @@ def build_rows(prefix):
             else None
         )
 
+        # Średnia B+L (bez KWSP)
+        valid_bl = [v for s, v in zip(STACJE_REF, values) if s != "KWSP" and v is not None]
+        avg_bl = sum(valid_bl) / len(valid_bl) if valid_bl else None
+        dev_abs_bl = patio_val - avg_bl if (patio_val is not None and avg_bl is not None) else None
+        dev_pct_bl = (
+            (patio_val - avg_bl) / abs(avg_bl) * 100
+            if (patio_val is not None and avg_bl is not None and avg_bl != 0)
+            else None
+        )
+
         rows.append({
             "Data": date,
             "BALUTY": round(values[0], 2) if values[0] is not None else "",
             "KWSP": round(values[1], 2) if values[1] is not None else "",
             "LUBLINEK": round(values[2], 2) if values[2] is not None else "",
             "Średnia (B+K+L)": round(avg, 2) if avg is not None else "",
+            "Średnia (B+L)": round(avg_bl, 2) if avg_bl is not None else "",
             "PATIO": round(patio_val, 2) if patio_val is not None else "",
             "PATIO odch.": fmt_deviation(deviation_abs, ".2f"),
             "PATIO % odch.": fmt_deviation(deviation_pct, ".1f", suffix="%"),
+            "PATIO odch. (B+L)": fmt_deviation(dev_abs_bl, ".2f"),
+            "PATIO % odch. (B+L)": fmt_deviation(dev_pct_bl, ".1f", suffix="%"),
         })
     return rows
 
@@ -105,7 +134,16 @@ def build_rows(prefix):
 
 # Zapisuje tabelę jako samodzielny plik HTML.
 def save_html(rows, prefix, unit):
-    col_names = ["Data", "BALUTY", "KWSP", "LUBLINEK", "Średnia (B+K+L)", "PATIO", "PATIO odch.", "PATIO % odch."]
+    if prefix == "opady":
+        col_names = [
+            "Data", "BALUTY", "KWSP", "LUBLINEK",
+            "Średnia (B+K+L)", "Średnia (B+L)",
+            "PATIO",
+            "PATIO odch.", "PATIO % odch.",
+            "PATIO odch. (B+L)", "PATIO % odch. (B+L)",
+        ]
+    else:
+        col_names = ["Data", "BALUTY", "KWSP", "LUBLINEK", "Średnia (B+K+L)", "PATIO", "PATIO odch.", "PATIO % odch."]
 
     # Wyciągamy każdą kolumnę jako listę wartości (Plotly tego wymaga).
     cell_values = [[row[col] for row in rows] for col in col_names]
@@ -133,6 +171,23 @@ def save_html(rows, prefix, unit):
 
     out_file = os.path.join(output_path, f"{prefix}.html")
     fig.write_html(out_file, include_plotlyjs="cdn")
+
+
+# Generyczny wykres liniowy: PATIO vs dowolna kolumna referencyjna.
+def save_line_chart(rows, prefix, unit, ref_col, ref_name, filename):
+    dates = [r["Data"] for r in rows]
+    patio = [r["PATIO"] if r["PATIO"] != "" else None for r in rows]
+    ref_vals = [r[ref_col] if r[ref_col] != "" else None for r in rows]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=dates, y=ref_vals, name=ref_name, mode="lines"))
+    fig.add_trace(go.Scatter(x=dates, y=patio, name="PATIO", mode="lines"))
+    fig.update_layout(
+        title=f"{prefix.capitalize()} [{unit}] — PATIO vs {ref_name}",
+        xaxis_title="Data",
+        yaxis_title=unit,
+    )
+    fig.write_html(os.path.join(output_path, filename), include_plotlyjs="cdn")
 
 
 # Wykres liniowy: PATIO vs Średnia (B+K+L)
@@ -168,6 +223,62 @@ def save_chart_patio_vs_station(rows, prefix, unit, station):
         yaxis_title=unit,
     )
     out_file = os.path.join(output_path, f"{prefix}_patio_vs_{station.lower()}.html")
+    fig.write_html(out_file, include_plotlyjs="cdn")
+
+
+# Wykres różnicowy: dwa subploty.
+# Góra: linie PATIO i referencji. Dół: słupki różnicy (PATIO − referencja).
+def save_chart_diff(rows, prefix, unit, ref_col, ref_name, out_name=None):
+    dates = [r["Data"] for r in rows]
+    patio_vals = [r["PATIO"] if r["PATIO"] != "" else None for r in rows]
+    ref_vals   = [r[ref_col] if r[ref_col] != "" else None for r in rows]
+
+    diff = [
+        p - r if (p is not None and r is not None) else None
+        for p, r in zip(patio_vals, ref_vals)
+    ]
+    bar_colors = [
+        "rgba(231, 76, 60, 0.7)" if (d is not None and d > 0) else
+        "rgba(39, 174, 96, 0.7)" if (d is not None and d < 0) else
+        "rgba(150, 150, 150, 0.4)"
+        for d in diff
+    ]
+
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        row_heights=[0.6, 0.4],
+        vertical_spacing=0.06,
+        subplot_titles=(f"PATIO vs {ref_name}", f"Różnica (PATIO − {ref_name}) [{unit}]"),
+    )
+
+    # Góra: linie
+    fig.add_trace(go.Scatter(x=dates, y=ref_vals,   name=ref_name, mode="lines"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=dates, y=patio_vals, name="PATIO",   mode="lines"), row=1, col=1)
+
+    # Dół: słupki różnicy
+    fig.add_trace(go.Bar(
+        x=dates, y=diff,
+        name="Różnica",
+        marker_color=bar_colors,
+        showlegend=False,
+    ), row=2, col=1)
+
+    fig.update_yaxes(title_text=unit, row=1, col=1)
+    fig.update_yaxes(title_text=unit, row=2, col=1)
+    fig.update_xaxes(title_text="Data", row=2, col=1)
+    fig.update_layout(
+        title=f"{prefix.capitalize()} [{unit}] — PATIO vs {ref_name}",
+        height=600,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        bargap=0,
+    )
+
+    if out_name:
+        out_file = os.path.join(output_path, out_name)
+    else:
+        slug = ref_name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("+", "")
+        out_file = os.path.join(output_path, f"{prefix}_diff_patio_vs_{slug}.html")
     fig.write_html(out_file, include_plotlyjs="cdn")
 
 
