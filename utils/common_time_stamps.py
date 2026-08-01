@@ -1,14 +1,11 @@
-from math import e
 import os
-from turtle import right
 
 # Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
 # działają niezależnie od tego, z którego katalogu uruchomimy program.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-data_path = os.path.join(PROJECT_ROOT, "data" , "common_range")
+data_path = os.path.join(PROJECT_ROOT, "data", "common_range")
 output_path = os.path.join(PROJECT_ROOT, "data", "common_time_stamps")
-
 
 def main():
     for file in os.listdir(data_path):
@@ -17,66 +14,49 @@ def main():
         elif file.startswith("opady"):
             transform_na_dane_dobowe(file, "sum")
         else:
-            raise ValueError(f"Invalid file: {file}. Please define avg or sum operation in common_time_stamps.py")
+            raise ValueError(f"Nieznany plik: {file}. Zdefiniuj operację (avg/sum) w common_time_stamps.py")
     return "Zakończono przetwarzanie plików do formatu dobowego."
 
 
-# wyciągamy średnią dobową albo sumę dobową w zależności od argumentu
-# (przekazujemy plik)
+# Jeden przebieg po pliku — grupujemy wartości po dacie (YYYY-MM-DD),
+# potem liczymy avg lub sum. Bez wielokrotnego otwierania pliku.
 def transform_na_dane_dobowe(file, type):
-    day_list = get_unique_days(file)
-    if type == "avg":
-        data = avg(file, day_list)
-        save(file, data)
-    elif type == "sum":
-        data = sum(file, day_list)
-        save(file, data)
-    else:
-        raise ValueError("Invalid type")
-    return print(f"Processed: {file} ({type})")
+    filepath = os.path.join(data_path, file)
 
-# suma dobowa (przekazujemy plik i listę dni)
-def sum(file, days_list):
+    # Grupujemy wartości po dacie: { "YYYY-MM-DD": [wartość, ...] }
+    daily = {}
+    with open(filepath, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(",")
+            if len(parts) < 2 or parts[1].strip() == "":
+                continue  # pomijamy linie bez wartości
+            date = parts[0][:10]  # pierwsze 10 znaków = YYYY-MM-DD
+            value = float(parts[1])
+            daily.setdefault(date, []).append(value)
     lines_to_save = []
-    for date in days_list:
-        date_sum = 0
-        with open(os.path.join(data_path, file), "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                if date in line:
-                    date_sum += float(line.split(",")[1])
-            lines_to_save.append(f"{date[0:10]},{date_sum}\n")
-    return lines_to_save
+    for date, values in daily.items():
+        if type == "avg":
+            result = sum(values) / len(values)
+        elif type == "sum":
+            result = sum(values)
+        else:
+            raise ValueError(f"Nieznany typ operacji: {type}")
+        lines_to_save.append(f"{date},{round(result, 2)}\n")
 
-# średnia dobowa
-def avg(file, days_list):
-    lines_to_save = []
-    for date in days_list:
-        date_sum = 0
-        count = 0
-        with open(os.path.join(data_path, file), "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                if date in line:
-                    date_sum += float(line.split(",")[1])
-                    count += 1
-            if count > 0:
-                lines_to_save.append(f"{date[0:10]},{date_sum / count}\n")
-    return lines_to_save
+    save(file, lines_to_save)
+    print(f"Processed: {file} ({type})")
 
-# zapisz plik do katalogu output_path (data to lista)
+
+# Zapisz posortowany plik do katalogu output_path.
 def save(file, data):
     os.makedirs(output_path, exist_ok=True)
     data.sort()
     with open(os.path.join(output_path, file), "w") as f:
         f.writelines(data)
 
-# wyciągnij listę uniklanych dni (YYYY-MM-DD HH:MM:SS) z pliku
-def get_unique_days(file):
-    with open(os.path.join(data_path, file), "r") as f:
-        lines = f.readlines()
-        days_list = [line.split(",")[0] for line in lines]
-        return list(set(days_list))
 
 if __name__ == "__main__":
     print(main())
