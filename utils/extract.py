@@ -112,9 +112,9 @@ def extract_data_from_lublinek(pomiar_code):
     with ProcessPoolExecutor() as executor:
         for lublinek_file, dane in executor.map(_extract_lublinek_file, zadania):
             lista_danych.extend(dane)
-            print("Processed " + os.path.basename(lublinek_file))
+            #print("Processed " + os.path.basename(lublinek_file))
 
-    print(lista_danych)
+    #print(lista_danych)
     return lista_danych
 
 # Przetwarza JEDEN plik LUBLINEK (wykonywane w procesie potomnym).
