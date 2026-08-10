@@ -20,6 +20,14 @@ def main():
     for prefix, unit in [("opady", "mm"), ("temperatury", "°C")]:
         rows = build_rows(prefix)
 
+        # Podsumowanie zawyżeń/zaniżeń per stacja
+        refs = ["Średnia (B+K+L)", "Średnia (B+L)"] if prefix == "opady" else ["Średnia (B+K+L)"]
+        counts = build_summary_counts(rows, refs)
+        save_summary_html(counts, prefix, refs)
+        print(f"Zapisano: {prefix}_podsumowanie.html")
+        save_summary_chart(counts, prefix, refs)
+        print(f"Zapisano: {prefix}_podsumowanie_wykres.html")
+
         save_html(rows, prefix, unit)
         print(f"Zapisano: {prefix}.html")
 
@@ -36,6 +44,8 @@ def main():
             save_chart_diff(rows, prefix, unit, "Średnia (B+L)", "Średnia (B+L)",
                             out_name="opady_diff_patio_vs_srednia_bez_kwsp.html")
             print("Zapisano: opady_diff_patio_vs_srednia_bez_kwsp.html")
+
+
 
         for stacja in STACJE_REF:
             save_chart_patio_vs_station(rows, prefix, unit, stacja)
@@ -372,6 +382,125 @@ def save_chart_diff(rows, prefix, unit, ref_col, ref_name, out_name=None):
         slug = ref_name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("+", "")
         out_file = os.path.join(output_path, f"{prefix}_diff_patio_vs_{slug}.html")
     fig.write_html(out_file, include_plotlyjs="cdn")
+
+
+# Zlicza dni, w których pomiar stacji był zawyżony/zaniżony względem średnich
+# referencyjnych. Zwraca {stacja: {ref: (zawyżone, zaniżone)}}.
+def build_summary_counts(rows, refs):
+    stations = STACJE_REF + ["PATIO"]
+    counts = {}
+    for s in stations:
+        counts[s] = {}
+        for ref in refs:
+            high = low = 0
+            for r in rows:
+                sv = r[s]
+                rv = r[ref]
+                if sv == "" or rv == "":
+                    continue  # brak pomiaru lub brak referencji
+                if float(sv) > float(rv):
+                    high += 1
+                elif float(sv) < float(rv):
+                    low += 1
+            counts[s][ref] = (high, low)
+    return counts
+
+
+# Dwie małe tabele HTML: liczba dni (zawyżone/zaniżone) oraz proporcje procentowe.
+def save_summary_html(counts, prefix, refs):
+    stations = STACJE_REF + ["PATIO"]
+
+    def table(headers, rows):
+        html = '<table style="border-collapse:collapse;font-family:sans-serif;font-size:13px;margin-bottom:24px">'
+        html += '<tr>' + ''.join(
+            f'<th style="background:#2c3e50;color:#fff;padding:6px 14px;border:1px solid #bbb">{h}</th>'
+            for h in headers
+        ) + '</tr>'
+        for row in rows:
+            html += '<tr>' + ''.join(
+                f'<td style="padding:4px 14px;border:1px solid #bbb;text-align:right">{c}</td>'
+                for c in row
+            ) + '</tr>'
+        return html + '</table>'
+
+    rows_counts = []
+    rows_pct = []
+    for s in stations:
+        row_counts = [s]
+        row_pct = [s]
+        for ref in refs:
+            high, low = counts[s][ref]
+            row_counts.append(high)
+            row_counts.append(low)
+            total = high + low
+            if total:
+                row_pct.append(f"{high / total * 100:.1f}% / {low / total * 100:.1f}%")
+            else:
+                row_pct.append("—")
+        rows_counts.append(row_counts)
+        rows_pct.append(row_pct)
+
+    ref_labels = [ref.split("(")[1][:-1] for ref in refs]
+    headers_counts = ["Stacja"] + [
+        c for label in ref_labels for c in [f"Zawyżone ({label})", f"Zaniżone ({label})"]
+    ]
+    headers_pct = ["Stacja"] + [f"Zawyżone / Zaniżone ({label})" for label in ref_labels]
+
+    title = f"{prefix.capitalize()} — zawyżenia/zaniżenia"
+    page = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>{title}</title></head>
+<body style="font-family:sans-serif;padding:24px;max-width:900px">
+<h2 style="margin-top:0">{prefix.capitalize()} — liczba dni z zawyżonym/zaniżonym pomiarem</h2>
+{table(headers_counts, rows_counts)}
+<h2>{prefix.capitalize()} — proporcje procentowe (zawyżone / zaniżone)</h2>
+{table(headers_pct, rows_pct)}
+</body></html>"""
+
+    out_file = os.path.join(output_path, f"{prefix}_podsumowanie.html")
+    with open(out_file, "w") as f:
+        f.write(page)
+
+
+# Wykres: 100% skumulowane poziome słupki — stosunek zawyżeń do zaniżeń per stacja.
+def save_summary_chart(counts, prefix, refs):
+    stations = STACJE_REF + ["PATIO"]
+    ref_labels = [ref.split("(")[1][:-1] for ref in refs]
+
+    categories = []
+    low_vals, high_vals = [], []
+    low_text, high_text = [], []
+    for s in stations:
+        for ref, label in zip(refs, ref_labels):
+            high, low = counts[s][ref]
+            total = high + low
+            hp = high / total * 100 if total else 0
+            lp = low / total * 100 if total else 0
+            categories.append(f"{s} ({label})")
+            low_vals.append(lp)
+            high_vals.append(hp)
+            low_text.append(f"{lp:.0f}%" if total else "brak danych")
+            high_text.append(f"{hp:.0f}%" if total else "")
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=categories, x=low_vals, name="Zaniżone", orientation="h",
+        marker_color="#27ae60", text=low_text, textposition="inside",
+        textfont=dict(color="white", size=12),
+    ))
+    fig.add_trace(go.Bar(
+        y=categories, x=high_vals, name="Zawyżone", orientation="h",
+        marker_color="#e74c3c", text=high_text, textposition="inside",
+        textfont=dict(color="white", size=12),
+    ))
+    fig.update_layout(
+        title=f"{prefix.capitalize()} — stosunek dni zawyżonych do zaniżonych (% dni z porównaniem)",
+        xaxis=dict(title="% dni", range=[0, 100]),
+        barmode="stack",
+        height=120 + 50 * len(categories),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    fig.write_html(os.path.join(output_path, f"{prefix}_podsumowanie_wykres.html"), include_plotlyjs="cdn")
 
 
 if __name__ == "__main__":
