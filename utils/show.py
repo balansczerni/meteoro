@@ -1,3 +1,4 @@
+import json
 import os
 
 import plotly.graph_objects as go
@@ -113,7 +114,7 @@ def build_rows(prefix):
             else None
         )
 
-        rows.append({
+        row = {
             "Data": date,
             "BALUTY": round(values[0], 2) if values[0] is not None else "",
             "KWSP": round(values[1], 2) if values[1] is not None else "",
@@ -125,7 +126,21 @@ def build_rows(prefix):
             "PATIO % odch.": fmt_deviation(deviation_pct, ".1f", suffix="%"),
             "PATIO odch. (B+L)": fmt_deviation(dev_abs_bl, ".2f"),
             "PATIO % odch. (B+L)": fmt_deviation(dev_pct_bl, ".1f", suffix="%"),
-        })
+        }
+
+        # Odchylenia każdej stacji od średniej B+K+L i B+L
+        for s, s_val in zip(STACJE_REF, values):
+            for ref_avg, suffix in [(avg, "(B+K+L)"), (avg_bl, "(B+L)")]:
+                d_abs = s_val - ref_avg if (s_val is not None and ref_avg is not None) else None
+                d_pct = (
+                    (s_val - ref_avg) / abs(ref_avg) * 100
+                    if (s_val is not None and ref_avg is not None and ref_avg != 0)
+                    else None
+                )
+                row[f"{s} odch. {suffix}"]   = fmt_deviation(d_abs, ".2f")
+                row[f"{s} % odch. {suffix}"] = fmt_deviation(d_pct, ".1f", suffix="%")
+
+        rows.append(row)
     return rows
 
 
@@ -134,19 +149,38 @@ def build_rows(prefix):
 
 # Zapisuje tabelę jako samodzielny plik HTML.
 def save_html(rows, prefix, unit):
+    # Kolumny odchyleń stacji od średniej
     if prefix == "opady":
+        stacja_dev_cols = [
+            col
+            for s in STACJE_REF
+            for suffix in ["(B+K+L)", "(B+L)"]
+            for col in [f"{s} odch. {suffix}", f"{s} % odch. {suffix}"]
+        ]
         col_names = [
             "Data", "BALUTY", "KWSP", "LUBLINEK",
             "Średnia (B+K+L)", "Średnia (B+L)",
             "PATIO",
             "PATIO odch.", "PATIO % odch.",
             "PATIO odch. (B+L)", "PATIO % odch. (B+L)",
-        ]
+        ] + stacja_dev_cols
     else:
-        col_names = ["Data", "BALUTY", "KWSP", "LUBLINEK", "Średnia (B+K+L)", "PATIO", "PATIO odch.", "PATIO % odch."]
+        stacja_dev_cols = [
+            col
+            for s in STACJE_REF
+            for col in [f"{s} odch. (B+K+L)", f"{s} % odch. (B+K+L)"]
+        ]
+        col_names = [
+            "Data", "BALUTY", "KWSP", "LUBLINEK",
+            "Średnia (B+K+L)",
+            "PATIO",
+            "PATIO odch.", "PATIO % odch.",
+        ] + stacja_dev_cols
 
     # Wyciągamy każdą kolumnę jako listę wartości (Plotly tego wymaga).
     cell_values = [[row[col] for row in rows] for col in col_names]
+
+    align = ["left"] + ["right"] * (len(col_names) - 1)
 
     fig = go.Figure(data=[go.Table(
         header=dict(
@@ -159,7 +193,7 @@ def save_html(rows, prefix, unit):
             values=cell_values,
             fill_color="white",
             font=dict(color="black", size=12, family="monospace"),
-            align=["left"] + ["right"] * (len(col_names) - 1),
+            align=align,
             height=24,
         ),
     )])
@@ -169,8 +203,66 @@ def save_html(rows, prefix, unit):
         margin=dict(l=10, r=10, t=50, b=10),
     )
 
+    # Dane dla JS — wszystkie kolumny zapamiętane by móc je filtrować po stronie klienta.
+    post_script = """
+var _H = {headers};
+var _C = {cells};
+var _A = {align};
+var _meta = {meta};
+var _did = "table-plot";
+
+var wrap = document.createElement('div');
+wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin:8px 4px 14px;align-items:center;font-family:sans-serif;font-size:12px';
+
+function mkBtn(label, fn) {{
+  var b = document.createElement('button');
+  b.textContent = label;
+  b.style.cssText = 'padding:2px 9px;border:1px solid #2c3e50;border-radius:3px;cursor:pointer;background:#2c3e50;color:#fff;font-size:12px';
+  b.addEventListener('click', fn);
+  return b;
+}}
+
+wrap.appendChild(mkBtn('Wszystkie', function() {{
+  document.querySelectorAll('.ctog').forEach(function(cb) {{ cb.checked = true; }});
+  redraw();
+}}));
+wrap.appendChild(mkBtn('Żadna', function() {{
+  document.querySelectorAll('.ctog').forEach(function(cb) {{ cb.checked = false; }});
+}}));
+
+_meta.forEach(function(m) {{
+  var lbl = document.createElement('label');
+  lbl.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border:1px solid #ccc;border-radius:3px;cursor:pointer;background:#f8f9fa;user-select:none';
+  var cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.className = 'ctog'; cb.value = m.i; cb.checked = true;
+  cb.addEventListener('change', redraw);
+  lbl.appendChild(cb);
+  lbl.appendChild(document.createTextNode('\u00a0' + m.label));
+  wrap.appendChild(lbl);
+}});
+
+var plotDiv = document.getElementById(_did);
+plotDiv.parentNode.insertBefore(wrap, plotDiv);
+
+function redraw() {{
+  var idx = Array.from(document.querySelectorAll('.ctog:checked')).map(function(cb) {{ return +cb.value; }});
+  if (!idx.length) return;
+  Plotly.restyle(_did, {{
+    'header.values': [idx.map(function(i) {{ return _H[i]; }})],
+    'cells.values':  [idx.map(function(i) {{ return _C[i]; }})],
+    'cells.align':   [idx.map(function(i) {{ return _A[i]; }})
+    ],
+  }});
+}}
+""".format(
+        headers=json.dumps(col_names),
+        cells=json.dumps(cell_values),
+        align=json.dumps(align),
+        meta=json.dumps([{"i": i, "label": c} for i, c in enumerate(col_names)]),
+    )
+
     out_file = os.path.join(output_path, f"{prefix}.html")
-    fig.write_html(out_file, include_plotlyjs="cdn")
+    fig.write_html(out_file, include_plotlyjs="cdn", div_id="table-plot", post_script=post_script)
 
 
 # Generyczny wykres liniowy: PATIO vs dowolna kolumna referencyjna.
