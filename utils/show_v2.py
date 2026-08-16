@@ -2,6 +2,7 @@ import json
 import os
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Katalog główny projektu (rodzic katalogu utils/). Dzięki niemu ścieżki
 # działają niezależnie od tego, z którego katalogu uruchomimy program.
@@ -24,15 +25,23 @@ def main():
 
         # Pełna wersja — wszystkie pary uporządkowane (A−B oraz B−A)
         save_html(rows, prefix, unit, stations, ordered_pairs(stations),
-                  f"{prefix}_odchylenia.html")
-        print(f"Zapisano: {prefix}_odchylenia.html")
+                  f"{prefix}_odchylenia_tabele.html")
+        print(f"Zapisano: {prefix}_odchylenia_tabele.html")
 
         # Mini wersja — każda para stacji tylko raz
         save_html(rows, prefix, unit, stations, unique_pairs(stations),
                   f"{prefix}_odchylenia_mini.html", note=" (pary unikalne)")
         print(f"Zapisano: {prefix}_odchylenia_mini.html")
 
-    return "Zapisano tabele odchyleń w katalogu export/."
+        # Wizualizacja szczegółowa — linie odchyleń (każda stacja jako 0)
+        save_detailed_charts(rows, prefix, unit, stations)
+        print(f"Zapisano: {prefix}_odchylenia_szczegolowe.html")
+
+        # Podsumowanie miesięczne — box ploty odchyleń
+        save_monthly_boxes(rows, prefix, unit, stations)
+        print(f"Zapisano: {prefix}_odchylenia_miesieczne.html")
+
+    return "Zapisano tabele i wykresy w katalogu export/."
 
 
 # Wczytuje plik CSV i zwraca słownik {data: wartość}.
@@ -54,6 +63,16 @@ def load_file(prefix, station):
             except ValueError:
                 continue
     return result
+
+
+# Zamienia sformatowane odchylenie ("+0.32", "-0.12", "0", "") na liczbę lub None.
+def parse_num(val):
+    if not isinstance(val, str) or val == "":
+        return None
+    try:
+        return float(val)
+    except ValueError:
+        return None
 
 
 # Wszystkie pary uporządkowane: (A−B oraz B−A) dla każdej pary stacji.
@@ -218,6 +237,110 @@ function redraw() {{
 
     out_file = os.path.join(output_path, filename)
     fig.write_html(out_file, include_plotlyjs="cdn", div_id="table-plot", post_script=post_script)
+
+
+# Wizualizacja szczegółowa: każda stacja po kolei jako absolutne 0,
+# odchylenia pozostałych stacji jako linie (osobny subplot na stację).
+def save_detailed_charts(rows, prefix, unit, stations):
+    dates = [r["Data"] for r in rows]
+    n = len(stations)
+
+    fig = make_subplots(
+        rows=n, cols=1, shared_xaxes=True,
+        subplot_titles=[f"Referencja: {s} (0)" for s in stations],
+        vertical_spacing=0.05,
+    )
+
+    for i, ref in enumerate(stations, start=1):
+        for s in stations:
+            if s == ref:
+                continue
+            vals = [parse_num(r[f"{s} − {ref}"]) for r in rows]
+            fig.add_trace(go.Scatter(
+                x=dates, y=vals, name=f"{s} − {ref}", mode="lines",
+                showlegend=True,
+            ), row=i, col=1)
+        # Linia zera — stacja referencyjna
+        fig.add_hline(y=0, line_dash="dash", line_color="gray", row=i, col=1)
+
+    fig.update_xaxes(title_text="Data", row=n, col=1)
+    fig.update_yaxes(title_text=f"odchylenie [{unit}]", row=1, col=1)
+    fig.update_layout(
+        title=f"{prefix.capitalize()} [{unit}] — odchylenia względem każdej stacji",
+        height=280 * n + 80,
+        # Pionowa legenda po prawej — nie zawija się i nie nachodzi na tytuł.
+        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02),
+        margin=dict(t=60, r=180),
+    )
+    fig.write_html(
+        os.path.join(output_path, f"{prefix}_odchylenia_szczegolowe.html"),
+        include_plotlyjs="cdn",
+    )
+
+
+# Podsumowanie miesięczne: agregujemy odchylenia po miesiącach i pokazujemy box ploty.
+def save_monthly_boxes(rows, prefix, unit, stations):
+    months = sorted({r["Data"][:7] for r in rows})
+    n = len(stations)
+
+    fig = make_subplots(
+        rows=n, cols=1, shared_xaxes=True,
+        subplot_titles=[f"Referencja: {s} (0)" for s in stations],
+        vertical_spacing=0.06,
+    )
+
+    for i, ref in enumerate(stations, start=1):
+        for s in stations:
+            if s == ref:
+                continue
+            x, y = [], []
+            for m in months:
+                vals = [
+                    parse_num(r[f"{s} − {ref}"])
+                    for r in rows if r["Data"][:7] == m
+                ]
+                vals = [v for v in vals if v is not None]
+                if not vals:
+                    continue
+                x.extend([m] * len(vals))
+                y.extend(vals)
+            fig.add_trace(go.Box(
+                x=x, y=y, name=f"{s} − {ref}",
+                showlegend=True,
+                boxpoints=False,  # czystszy obraz bez punktów odstających
+            ), row=i, col=1)
+        # Linia zera — stacja referencyjna
+        fig.add_hline(y=0, line_dash="dash", line_color="gray", row=i, col=1)
+
+    fig.update_xaxes(title_text="Miesiąc", row=n, col=1)
+    fig.update_yaxes(title_text=f"odchylenie [{unit}]", row=1, col=1)
+    fig.update_layout(
+        title=f"{prefix.capitalize()} [{unit}] — odchylenia miesięczne (box plot)",
+        boxmode="group",
+        height=320 * n + 80,
+        # Pionowa legenda po prawej — nie zawija się i nie nachodzi na tytuł.
+        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02),
+        margin=dict(t=60, b=160, r=180),
+    )
+
+    # Podpis pod wykresami — wyjaśnienie elementów box plotu.
+    fig.add_annotation(
+        xref="paper", yref="paper",
+        x=0, y=-0.14,
+        showarrow=False,
+        align="left",
+        text=(
+            "<b>Box plot:</b><br>"
+            "Mediana — wartość środkowa (50. percentyl)<br>"
+            "Q1 — dolny kwartyl (25. percentyl), Q3 — górny kwartyl (75. percentyl)<br>"
+            "Min / Max — najniższa i najwyższa wartość."
+        ),
+        font=dict(size=12),
+    )
+    fig.write_html(
+        os.path.join(output_path, f"{prefix}_odchylenia_miesieczne.html"),
+        include_plotlyjs="cdn",
+    )
 
 
 if __name__ == "__main__":
