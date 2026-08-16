@@ -7,7 +7,7 @@
 # 6. Transformuj dane (transform)
 
 # Importujemy moduły z katalogu utils - każdy z nich realizuje jedno zadanie.
-from utils import common_time_stamps, common_range, download, extract, show, unify, unpack
+from utils import common_time_stamps, common_range, download, extract, show_v1, show_v2, unify, unpack
 
 # Słownik łączący numer opcji z opisem zadania i funkcją, która je wykonuje.
 OPCJE = {
@@ -17,7 +17,8 @@ OPCJE = {
     "4": ("Unifikuj dane", unify.main),
     "5": ("Wyciągnij wspólny zakres", common_range.main),
     "6": ("Ujednolić częstotliowść pomiarów", common_time_stamps.main),
-    "7": ("Pokaż dane", show.main),
+    "7": ("Pokaż dane v1", show_v1.main),
+    "8": ("Pokaż dane v2", show_v2.main),
 }
 
 def main():

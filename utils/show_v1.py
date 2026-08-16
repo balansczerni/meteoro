@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 # działają niezależnie od tego, z którego katalogu uruchomimy program.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 data_path = os.path.join(PROJECT_ROOT, "data", "common_time_stamps")
-output_path = os.path.join(PROJECT_ROOT, "export")
+output_path = os.path.join(PROJECT_ROOT, "export/v1")
 
 # Stacje używane do obliczania średniej referencyjnej.
 STACJE_REF = ["BALUTY", "KWSP", "LUBLINEK"]
